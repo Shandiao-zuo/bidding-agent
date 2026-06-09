@@ -1,0 +1,26 @@
+name: 每日招标检索
+on:
+  schedule:
+    - cron: '0 10 * * *'
+  workflow_dispatch:
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install requests beautifulsoup4 playwright
+      - run: playwright install --with-deps chromium
+      - name: 运行爬虫
+        env:
+          SERVER_CHAN_KEY: ${{ secrets.SERVER_CHAN_KEY }}
+          KEYWORDS: ${{ vars.KEYWORDS || '咨询评估机构' }}
+        run: python gh_scraper.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results
+          path: data.json
+          retention-days: 7
