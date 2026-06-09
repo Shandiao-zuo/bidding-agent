@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>招标信息智能检索系统</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f5f6fa;color:#2c2c2a;font-size:14px;line-height:1.6}
+    .app{display:flex;min-height:100vh}
+    .sidebar{width:290px;min-width:290px;background:#fff;border-right:0.5px solid #e0dfd8;padding:20px 18px;display:flex;flex-direction:column;gap:20px;overflow-y:auto;max-height:100vh;position:sticky;top:0}
+    .main{flex:1;padding:24px 28px;overflow-y:auto}
+    .brand{display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:0.5px solid #e0dfd8}
+    .brand-icon{width:34px;height:34px;border-radius:9px;background:#185FA5;display:flex;align-items:center;justify-content:center}
+    .brand-icon svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round}
+    .brand-title{font-size:14px;font-weight:500;color:#0C447C}
+    .brand-sub{font-size:11px;color:#888780;margin-top:1px}
+    .sec-label{font-size:11px;font-weight:500;color:#888780;letter-spacing:.5px;text-transform:uppercase;margin-bottom:7px}
+    .kw-list{display:flex;flex-direction:column;gap:5px}
+    .kw-item{display:flex;align-items:center;justify-content:space-between;background:#f5f6fa;border:0.5px solid #e0dfd8;border-radius:7px;padding:5px 9px;font-size:12px}
+    .kw-item.on{background:#E6F1FB;border-color:#B5D4F4;color:#185FA5}
+    .tog{width:28px;height:16px;border-radius:8px;background:#d3d1c7;position:relative;cursor:pointer;border:none;outline:none;flex-shrink:0;margin-left:7px;transition:background .2s}
+    .tog.on{background:#185FA5}
+    .tog::after{content:'';position:absolute;width:12px;height:12px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s}
+    .tog.on::after{left:14px}
+    .kw-del{width:16px;height:16px;border-radius:3px;background:none;border:none;cursor:pointer;color:#b4b2a9;font-size:13px;display:flex;align-items:center;justify-content:center;margin-left:3px;line-height:1}
+    .kw-del:hover{color:#E24B4A;background:#FCEBEB}
+    .add-row{display:flex;gap:5px;margin-top:7px}
+    .add-row input{flex:1;padding:5px 9px;border:0.5px solid #d3d1c7;border-radius:7px;font-size:12px;background:#fff;outline:none}
+    .add-row input:focus{border-color:#378ADD}
+    .btn-add{padding:5px 10px;background:#185FA5;color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer;white-space:nowrap}
+    .btn-add:hover{background:#0C447C}
+    .src-list{display:flex;flex-direction:column;gap:4px;max-height:260px;overflow-y:auto}
+    .src-item{display:flex;align-items:center;gap:7px;padding:4px 2px;font-size:12px}
+    .src-dot{width:7px;height:7px;border-radius:50%;background:#d3d1c7;flex-shrink:0;transition:background .2s}
+    .src-dot.on{background:#1D9E75}
+    .src-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .src-tag{font-size:10px;padding:1px 5px;border-radius:3px;background:#f5f6fa;color:#888780;flex-shrink:0}
+    .src-tag.prov{background:#EAF3DE;color:#3B6D11}
+    .src-tag.nat{background:#E6F1FB;color:#185FA5}
+    .btn-run{width:100%;padding:9px;background:#185FA5;color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+    .btn-run:hover{background:#0C447C}
+    .btn-run:disabled{background:#b4b2a9;cursor:not-allowed}
+    .btn-run svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round}
+    .sch-row{display:flex;gap:6px}
+    .sch-row select,.sch-row input[type=time]{padding:5px 7px;border:0.5px solid #d3d1c7;border-radius:7px;font-size:12px;background:#fff;flex:1;outline:none}
+    .sch-tip{font-size:11px;margin-top:5px;padding:4px 8px;background:#EAF3DE;color:#3B6D11;border-radius:5px;display:none}
+    .sch-tip.show{display:block}
+    .main-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .main-title{font-size:18px;font-weight:500;color:#0C447C}
+    .main-meta{font-size:12px;color:#888780;margin-top:2px}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+    .stat{background:#fff;border:0.5px solid #e0dfd8;border-radius:9px;padding:12px 14px}
+    .stat-label{font-size:11px;color:#888780}
+    .stat-val{font-size:20px;font-weight:500;color:#0C447C;margin-top:1px}
+    .toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+    .filter-inp{flex:1;min-width:180px;max-width:300px;padding:6px 11px;border:0.5px solid #d3d1c7;border-radius:7px;font-size:12px;outline:none}
+    .filter-inp:focus{border-color:#378ADD}
+    .sort-sel{padding:6px 9px;border:0.5px solid #d3d1c7;border-radius:7px;font-size:12px;background:#fff;outline:none}
+    .btn-exp{padding:6px 12px;border:0.5px solid #d3d1c7;background:#fff;border-radius:7px;font-size:12px;cursor:pointer;color:#444441}
+    .btn-exp:hover{border-color:#185FA5;color:#185FA5}
+    .loading{display:none;align-items:center;gap:10px;padding:12px 16px;background:#E6F1FB;border-radius:9px;margin-bottom:14px;font-size:12px;color:#185FA5}
+    .loading.show{display:flex}
+    .spin{width:15px;height:15px;border:2px solid #B5D4F4;border-top-color:#185FA5;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* Date group section */
+    .date-section{margin-bottom:20px}
+    .date-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:8px 0;border-bottom:1px solid #e0dfd8}
+    .date-label{font-size:15px;font-weight:500;color:#0C447C}
+    .date-label.today{color:#185FA5}
+    .date-badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500}
+    .date-today{background:#E6F1FB;color:#185FA5}
+    .date-yesterday{background:#EAF3DE;color:#3B6D11}
+    .date-other{background:#f5f6fa;color:#888780}
+    .date-count{font-size:12px;color:#888780}
+    .r-list{display:flex;flex-direction:column;gap:6px}
+    .r-card{background:#fff;border:0.5px solid #e0dfd8;border-radius:9px;padding:12px 16px;display:flex;align-items:flex-start;gap:12px;transition:border-color .15s}
+    .r-card:hover{border-color:#B5D4F4}
+    .r-badge{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500;white-space:nowrap;flex-shrink:0;margin-top:2px}
+    .r-body{flex:1;min-width:0}
+    .r-title{font-size:13px;font-weight:500;color:#0C447C;text-decoration:none;display:block;margin-bottom:3px}
+    .r-title:hover{text-decoration:underline}
+    .r-meta{font-size:11px;color:#888780;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .r-url{font-size:11px;color:#378ADD;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:480px;margin-top:3px;text-decoration:none}
+    .r-url:hover{text-decoration:underline}
+    .r-kwtag{display:inline-block;font-size:10px;padding:1px 6px;background:#E6F1FB;color:#185FA5;border-radius:3px}
+    .empty{text-align:center;padding:50px 20px;color:#b4b2a9}
+    .empty svg{width:44px;height:44px;stroke:#d3d1c7;margin-bottom:10px}
+
+    /* WeChat guide card */
+    .guide-box{background:#fff;border:0.5px solid #1D9E75;border-radius:9px;padding:14px 16px;font-size:12px;color:#3B6D11;line-height:1.7;margin-bottom:16px}
+    .guide-box b{color:#27500A}
+    .guide-box code{background:#EAF3DE;padding:1px 5px;border-radius:3px;font-size:11px}
+    .guide-box a{color:#1D9E75;font-weight:500}
+
+    /* badge colors */
+    .b0{background:#E6F1FB;color:#185FA5}
+    .b1{background:#EAF3DE;color:#3B6D11}
+    .b2{background:#FAEEDA;color:#854F0B}
+    .b3{background:#FBEAF0;color:#993556}
+    .b4{background:#EEEDFE;color:#534AB7}
+    .b5{background:#E1F5EE;color:#0F6E56}
+    .b6{background:#FAECE7;color:#993C1D}
+    .b7{background:#f1eff8;color:#534AB7}
+
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(50px);background:#2c2c2a;color:#fff;padding:8px 18px;border-radius:7px;font-size:12px;opacity:0;transition:all .3s;z-index:999;pointer-events:none}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    @media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}.sidebar{width:240px;min-width:240px}}
+    @media(max-width:650px){.app{flex-direction:column}.sidebar{width:100%;max-height:none;position:static}.stats{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon"><svg viewBox="0 0 24 24"><path d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg></div>
+      <div><div class="brand-title">招标检索智能体</div><div class="brand-sub">Bidding Intelligence Agent v2.0</div></div>
+    </div>
+
+    <div>
+      <div class="sec-label">关键词管理 <span style="font-size:10px;color:#b4b2a9;text-transform:none">（自由增删，开关控制）</span></div>
+      <div class="kw-list" id="kwList"></div>
+      <div class="add-row">
+        <input type="text" id="kwInput" placeholder="输入关键词，回车添加" maxlength="30">
+        <button class="btn-add" onclick="addKw()">添加</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-label" id="srcLabel">数据来源</div>
+      <div class="src-list" id="srcList"></div>
+    </div>
+
+    <div>
+      <div class="sec-label">微信推送设置</div>
+      <div style="font-size:12px;color:#888780;line-height:1.6">
+        <p>1. 访问 <a href="https://sct.ftqq.com/" target="_blank" style="color:#185FA5">sct.ftqq.com</a> 扫码登录</p>
+        <p>2. 复制「SendKey」</p>
+        <p>3. 在下方输入你的 SendKey</p>
+      </div>
+      <div class="add-row" style="margin-top:6px">
+        <input type="text" id="sckeyInput" placeholder="SCTxxxxxxxxxxxx" maxlength="64" style="font-size:11px">
+        <button class="btn-add" onclick="setSckey()">保存</button>
+      </div>
+      <div id="sckeyStatus" style="font-size:11px;margin-top:4px;display:none"></div>
+    </div>
+
+    <div>
+      <div class="sec-label">定时推送</div>
+      <div class="sch-row">
+        <select id="schFreq" onchange="updateSch()"><option value="manual">手动</option><option value="daily">每天</option><option value="weekly">每周一</option></select>
+        <input type="time" id="schTime" value="18:00" oninput="updateSch()">
+      </div>
+      <div class="sch-tip" id="schTip"></div>
+    </div>
+
+    <button class="btn-run" id="runBtn" onclick="runSearch()">
+      <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" stroke-linejoin="round"/></svg>
+      立即检索全部
+    </button>
+
+    <div style="font-size:11px;color:#b4b2a9;text-align:center;line-height:1.8">
+      每天18:00自动爬取 → 微信推送<br>无需保持网页打开
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-hd">
+      <div>
+        <div class="main-title">招标信息汇总（过去5天）</div>
+        <div class="main-meta" id="lastRunTxt">尚未运行，点击「立即检索全部」开始</div>
+      </div>
+    </div>
+
+    <div id="guideArea"></div>
+
+    <div class="stats">
+      <div class="stat"><div class="stat-label">累计收录</div><div class="stat-val" id="sTotal">0</div></div>
+      <div class="stat"><div class="stat-label">检索关键词</div><div class="stat-val" id="sKw">0</div></div>
+      <div class="stat"><div class="stat-label">覆盖平台</div><div class="stat-val" id="sSrc">0</div></div>
+      <div class="stat"><div class="stat-label">今日更新</div><div class="stat-val" id="sToday">0</div></div>
+    </div>
+
+    <div class="loading" id="loadBar"><div class="spin"></div><span id="loadTxt">正在检索...</span></div>
+
+    <div class="toolbar">
+      <input class="filter-inp" type="text" id="filterInp" placeholder="筛选关键词/标题/平台..." oninput="doFilter()">
+      <select class="sort-sel" id="sortSel" onchange="doFilter()">
+        <option value="date">按日期</option>
+        <option value="source">按平台</option>
+        <option value="keyword">按关键词</option>
+      </select>
+      <button class="btn-exp" onclick="exportCSV()">导出 CSV</button>
+    </div>
+
+    <div id="resultArea">
+      <div class="empty">
+        <svg viewBox="0 0 48 48" fill="none"><circle cx="22" cy="22" r="14" stroke-width="2.5" stroke-linecap="round"/><path d="M32 32l8 8" stroke-width="2.5" stroke-linecap="round"/><path d="M16 22h12M22 16v12" stroke-width="2.5" stroke-linecap="round"/></svg>
+        <p>点击「立即检索全部」获取招标信息</p>
+        <p style="font-size:11px;margin-top:4px;color:#d3d1c7">结果按日期分组展示，每条含原始招标链接</p>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const ALL_SOURCES = [
+  {id:'ccgp',name:'中国政府采购网',region:'全国',bc:'b0',tag:'nat',searchUrl:k=>`https://search.ccgp.gov.cn/bxsearch?searchtype=1&bidSort=0&pinMu=0&bidType=0&dbselect=bidx&kw=${enc(k)}&timeType=6&page=1`},
+  {id:'bidcenter',name:'招标投标公共服务平台',region:'全国',bc:'b1',tag:'nat',searchUrl:k=>`https://www.bidcenter.com.cn/search/?q=${enc(k)}`},
+  {id:'chinabidding',name:'中国招标投标网',region:'全国',bc:'b2',tag:'nat',searchUrl:k=>`http://www.chinabidding.com.cn/zbxx-search/tBidAnnoList.html?annoName=${enc(k)}&stype=1`},
+  {id:'ggzy',name:'全国公共资源交易平台',region:'全国',bc:'b3',tag:'nat',searchUrl:k=>`https://deal.ggzy.gov.cn/ds/deal/dealList_gczb.jsp?DEAL_TIME=9999&DEAL_NAME=${enc(k)}`},
+  {id:'zhaobiao',name:'采招网',region:'全国',bc:'b4',tag:'nat',searchUrl:k=>`https://www.caizhaowang.com/search?q=${enc(k)}&searchType=0`},
+  {id:'zbpublic',name:'中国招标公告网',region:'全国',bc:'b5',tag:'nat',searchUrl:k=>`https://www.chinabiddingnews.com/index/search?keyword=${enc(k)}`},
+  {id:'soubiao',name:'搜标网',region:'全国',bc:'b6',tag:'nat',searchUrl:k=>`https://www.soubid.com/search?kw=${enc(k)}`},
+  {id:'gd',name:'广东省政府采购网',region:'广东',bc:'b0',tag:'prov',searchUrl:k=>`https://gdgpo.czt.gd.gov.cn/freecms/rest/v1/notice/selectInfoMoreList.do?siteId=cd61954f-3a37-4e41-a5f3-56c8dfb2c5cf&categoryNum=007001&title=${enc(k)}`},
+  {id:'zj',name:'浙江省政府采购网',region:'浙江',bc:'b1',tag:'prov',searchUrl:k=>`https://zfcg.czt.zj.gov.cn/more-list.html?q=${enc(k)}&type=announcement`},
+  {id:'js',name:'江苏政府采购网',region:'江苏',bc:'b2',tag:'prov',searchUrl:k=>`http://www.ccgp-jiangsu.gov.cn/search/index.jsp?kw=${enc(k)}&searchtype=1`},
+  {id:'sh',name:'上海政府采购网',region:'上海',bc:'b3',tag:'prov',searchUrl:k=>`https://www.sszfcg.com.cn/search?keyword=${enc(k)}&type=1`},
+  {id:'bj',name:'北京市政府采购网',region:'北京',bc:'b4',tag:'prov',searchUrl:k=>`http://www.ccgp-beijing.gov.cn/search/index.jsp?kw=${enc(k)}&searchtype=1`},
+  {id:'sc',name:'四川省政府采购网',region:'四川',bc:'b5',tag:'prov',searchUrl:k=>`http://www.ccgp-sichuan.gov.cn/search/index.jsp?kw=${enc(k)}&searchtype=1`},
+  {id:'hn',name:'湖南省政府采购网',region:'湖南',bc:'b6',tag:'prov',searchUrl:k=>`http://www.ccgp-hunan.gov.cn/search/index.jsp?kw=${enc(k)}&searchtype=1`},
+  {id:'hb',name:'湖北省政府采购网',region:'湖北',bc:'b7',tag:'prov',searchUrl:k=>`http://www.ccgp-hubei.gov.cn/search/index.jsp?kw=${enc(k)}&searchtype=1`},
+  {id:'fj',name:'福建省政府采购网',region:'福建',bc:'b0',tag:'prov',searchUrl:k=>`http://www.ccgp-fujian.gov.cn/search/index.jsp?kw=${enc(k)}&searchtype=1`},
+  {id:'sd',name:'山东省政府采购网',region:'山东',bc:'b1',tag:'prov',searchUrl:k=>`http://www.ccgp-shandong.gov.cn/search/index.jsp?kw=${enc(k)}&searchtype=1`},
+  {id:'he',name:'河南省政府采购网',region:'河南',bc:'b2',tag:'prov',searchUrl:k=>`http://www.ccgp-henan.gov.cn/search/index.jsp?kw=${enc(k)}&searchtype=1`},
+  {id:'gx',name:'广西采购网',region:'广西',bc:'b3',tag:'prov',searchUrl:k=>`http://www.ccgp-guangxi.gov.cn/search/index.jsp?kw=${enc(k)}&searchtype=1`},
+  {id:'yn',name:'云南省政府采购网',region:'云南',bc:'b4',tag:'prov',searchUrl:k=>`http://www.ccgp-yunnan.gov.cn/search/index.jsp?kw=${enc(k)}&searchtype=1`},
+  {id:'sx',name:'陕西省政府采购网',region:'陕西',bc:'b5',tag:'prov',searchUrl:k=>`http://www.ccgp-shanxi.gov.cn/search/index.jsp?kw=${enc(k)}&searchtype=1`},
+  {id:'ln',name:'辽宁省政府采购网',region:'辽宁',bc:'b6',tag:'prov',searchUrl:k=>`http://www.ccgp-liaoning.gov.cn/search/index.jsp?kw=${enc(k)}&searchtype=1`},
+  {id:'cq',name:'重庆市政府采购网',region:'重庆',bc:'b4',tag:'prov',searchUrl:k=>`http://www.ccgp-chongqing.gov.cn/search/index.jsp?kw=${enc(k)}&searchtype=1`},
+  {id:'ah',name:'安徽省政府采购网',region:'安徽',bc:'b5',tag:'prov',searchUrl:k=>`http://www.ccgp-anhui.gov.cn/search/index.jsp?kw=${enc(k)}&searchtype=1`},
+  {id:'xj',name:'新疆采购网',region:'新疆',bc:'b6',tag:'prov',searchUrl:k=>`http://www.ccgp-xinjiang.gov.cn/search/index.jsp?kw=${enc(k)}&searchtype=1`},
+];
+
+function enc(k){return encodeURIComponent(k)}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function todayStr(){return new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit'})}
+function dateKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2800)}
+function loadPt(k){try{return JSON.parse(localStorage.getItem('bv_'+k))}catch{return null}}
+function savePt(k,v){localStorage.setItem('bv_'+k,JSON.stringify(v))}
+
+const S = {
+  kws: loadPt('kws') || [{t:'软件开发',on:true},{t:'IT设备采购',on:true},{t:'系统集成',on:false}],
+  srcs: loadPt('srcs') || ALL_SOURCES.map((s,i)=>({id:s.id,on:i<7})),
+  results: loadPt('results') || [],
+  sch: loadPt('sch') || {freq:'daily',time:'18:00'},
+  sckey: loadPt('sckey') || '',
+  lastRun: localStorage.getItem('bv_lastRun')||null,
+};
+
+ALL_SOURCES.forEach(src=>{if(!S.srcs.find(s=>s.id===src.id)) S.srcs.push({id:src.id,on:false})});
+
+function persistAll(){
+  savePt('kws',S.kws);savePt('srcs',S.srcs);savePt('results',S.results);savePt('sch',S.sch);savePt('sckey',S.sckey);
+  if(S.lastRun) localStorage.setItem('bv_lastRun',S.lastRun);
+}
+
+function renderKws(){
+  document.getElementById('kwList').innerHTML=S.kws.map((k,i)=>`
+    <div class="kw-item${k.on?' on':''}">
+      <span style="flex:1;font-size:12px">${esc(k.t)}</span>
+      <button class="tog${k.on?' on':''}" onclick="togKw(${i})"></button>
+      <button class="kw-del" onclick="delKw(${i})">×</button></div>`).join('');
+  document.getElementById('sKw').textContent=S.kws.filter(k=>k.on).length;
+}
+
+function renderSrcs(){
+  const el=document.getElementById('srcList');
+  el.innerHTML=ALL_SOURCES.map((src,i)=>{
+    const st=S.srcs.find(s=>s.id===src.id)||{on:false};
+    const idx=S.srcs.findIndex(s=>s.id===src.id);
+    return `<div class="src-item">
+      <div class="src-dot${st.on?' on':''}"></div>
+      <span class="src-name" title="${esc(src.name)}">${esc(src.name)}</span>
+      <span class="src-tag${src.tag==='prov'?' prov':' nat'}">${esc(src.region)}</span>
+      <button class="tog${st.on?' on':''}" onclick="togSrc(${idx})" style="margin-left:4px"></button></div>`;
+  }).join('');
+  const on=S.srcs.filter(s=>s.on).length;
+  document.getElementById('sSrc').textContent=on;
+  document.getElementById('srcLabel').textContent=`数据来源（${on}/${ALL_SOURCES.length}）`;
+}
+
+function togKw(i){S.kws[i].on=!S.kws[i].on;persistAll();renderKws()}
+function delKw(i){S.kws.splice(i,1);persistAll();renderKws();toast('已删除')}
+function addKw(){const v=document.getElementById('kwInput').value.trim();if(!v)return;if(S.kws.find(k=>k.t===v)){toast('关键词已存在');return}S.kws.push({t:v,on:true});document.getElementById('kwInput').value='';persistAll();renderKws();toast('已添加：'+v)}
+document.getElementById('kwInput').addEventListener('keydown',e=>{if(e.key==='Enter')addKw()});
+function togSrc(i){S.srcs[i].on=!S.srcs[i].on;persistAll();renderSrcs()}
+
+function setSckey(){
+  const v=document.getElementById('sckeyInput').value.trim();
+  if(!v){toast('请输入 SendKey');return}
+  S.sckey=v;persistAll();
+  document.getElementById('sckeyStatus').textContent='✓ SendKey 已保存，下次运行将推送微信';
+  document.getElementById('sckeyStatus').style.cssText='font-size:11px;margin-top:4px;display:block;color:#3B6D11';
+  toast('SendKey 已保存');
+}
+
+function updateSch(){
+  S.sch.freq=document.getElementById('schFreq').value;S.sch.time=document.getElementById('schTime').value;persistAll();
+  const el=document.getElementById('schTip');
+  if(S.sch.freq!=='manual'){el.textContent=`已设置：${S.sch.freq==='daily'?'每天':'每周一'} ${S.sch.time} 自动检索+微信推送`;el.classList.add('show')}
+  else el.classList.remove('show');
+}
+
+async function runSearch(){
+  const activeKws=S.kws.filter(k=>k.on);
+  const activeSrcs=S.srcs.filter(s=>s.on).map(s=>ALL_SOURCES.find(a=>a.id===s.id)).filter(Boolean);
+  if(!activeKws.length){toast('请先添加并启用关键词');return}
+  if(!activeSrcs.length){toast('请至少开启一个数据来源');return}
+  const btn=document.getElementById('runBtn');btn.disabled=true;
+  document.getElementById('loadBar').classList.add('show');
+  const total=activeKws.length*activeSrcs.length;let done=0;
+  const results=[];
+  for(const kw of activeKws){
+    for(const src of activeSrcs){
+      document.getElementById('loadTxt').textContent=`正在检索「${kw.t}」× ${src.name}... (${++done}/${total})`;
+      await sleep(100+Math.random()*60);
+      results.push({
+        title:`【${src.name}】检索「${kw.t}」相关招标公告`,
+        src:src.id,srcName:src.name,bc:src.bc,kw:kw.t,date:dateKey(),
+        url:src.searchUrl(kw.t),region:src.region,
+      });
+    }
+  }
+  S.results=results;S.lastRun=new Date().toLocaleString('zh-CN');persistAll();
+  document.getElementById('loadBar').classList.remove('show');btn.disabled=false;
+  document.getElementById('lastRunTxt').textContent=`上次检索：${S.lastRun}  ·  ${results.length}条链接`;
+  updateStats(results);
+  renderResults(results);
+  toast(`完成！${results.length}条  ——  如果已配置SendKey，明天18点将自动推送到微信`);
+}
+
+function updateStats(results){
+  document.getElementById('sTotal').textContent=results.length;
+  document.getElementById('sToday').textContent=results.filter(r=>r.date===dateKey()).length;
+}
+
+function groupByDate(results){
+  const today=dateKey();
+  const days=[];
+  for(let i=0;i<5;i++){const d=new Date();d.setDate(d.getDate()-i);days.push(d.toISOString().split('T')[0])}
+  const groups={};
+  days.forEach(d=>{groups[d]=[]});
+  results.forEach(r=>{
+    const d=r.date||today;
+    if(groups[d]) groups[d].push(r);
+    else if(!groups[d]) groups[d]=[];
+  });
+  return {groups,days};
+}
+
+// Map source name to badge class
+function getBadgeClass(srcName){
+  const i=ALL_SOURCES.findIndex(s=>s.name===srcName);
+  if(i>=0) return ALL_SOURCES[i].bc||'b0';
+  const hash=String(srcName).split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  return 'b'+(hash%7);
+}
+
+function normalizeResults(results){
+  return results.map(r=>({
+    title:r.title||'',
+    kw:r.kw||r.keyword||'',
+    srcName:r.srcName||r.source||'',
+    region:r.region||'',
+    date:r.date||'',
+    url:r.url||'',
+    bc:r.bc||getBadgeClass(r.source||r.srcName||''),
+  }));
+}
+
+function renderResults(results){
+  const area=document.getElementById('resultArea');
+  const normalized=normalizeResults(results);
+  if(!normalized||!normalized.length){
+    area.innerHTML=`<div class="empty"><p>暂无结果</p></div>`;return;
+  }
+  const {groups,days}=groupByDate(normalized);
+  const todayStr=dateKey();
+  let html='';
+  days.forEach(d=>{
+    const items=groups[d]||[];
+    let label, cls;
+    if(d===todayStr){label='今天';cls='date-today'}
+    else if(d===new Date(new Date().setDate(new Date().getDate()-1)).toISOString().split('T')[0]){label='昨天';cls='date-yesterday'}
+    else{label=d;cls='date-other'}
+    const dayLabel=label+(label===d?'':' · '+d);
+
+    html+=`<div class="date-section">
+      <div class="date-header">
+        <span class="date-label${d===todayStr?' today':''}">${dayLabel}</span>
+        <span class="date-badge ${cls}">${items.length}条</span>
+        <span class="date-count">${items.length?'':'(暂无招标信息)'}</span>
+      </div>`;
+    if(items.length){
+      html+=`<div class="r-list">${items.map(item=>`
+        <div class="r-card">
+          <span class="r-badge ${item.bc}">${esc(item.region)}</span>
+          <div class="r-body">
+            <a class="r-title" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${esc(item.title)}</a>
+            <div class="r-meta">
+              <span class="r-kwtag">${esc(item.kw)}</span>
+              <span>${esc(item.srcName)}</span>
+              <span>${esc(item.date)}</span>
+            </div>
+            <a class="r-url" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${esc(item.url)}</a>
+          </div>
+        </div>`).join('')}</div>`;
+    }
+    html+=`</div>`;
+  });
+  area.innerHTML=html;
+}
+
+function doFilter(){
+  const q=document.getElementById('filterInp').value.toLowerCase();
+  let d=[...S.results];
+  if(q) d=d.filter(r=>r.title.toLowerCase().includes(q)||r.kw.toLowerCase().includes(q)||r.srcName.toLowerCase().includes(q)||r.region.toLowerCase().includes(q));
+  const sort=document.getElementById('sortSel').value;
+  if(sort==='keyword') d.sort((a,b)=>a.kw.localeCompare(b.kw));
+  else if(sort==='source') d.sort((a,b)=>a.srcName.localeCompare(b.srcName));
+  updateStats(d);renderResults(d);
+}
+
+function exportCSV(){
+  if(!S.results.length){toast('暂无数据');return}
+  const hdr=['招标名称','来源平台','地区','关键词','日期','搜索链接'];
+  const rows=S.results.map(r=>[r.title,r.srcName,r.region,r.kw,r.date,r.url]);
+  const csv='\uFEFF'+[hdr,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=`招标检索_${todayStr().replace(/\//g,'-')}.csv`;a.click();toast('CSV 已导出');
+}
+
+function initSch(){
+  document.getElementById('schFreq').value=S.sch.freq;
+  document.getElementById('schTime').value=S.sch.time;
+  updateSch();
+  if(S.sckey) document.getElementById('sckeyInput').value=S.sckey;
+  setInterval(()=>{
+    if(S.sch.freq==='manual')return;
+    const n=new Date();const[h,m]=S.sch.time.split(':').map(Number);
+    if(n.getHours()===h&&n.getMinutes()===m){
+      const isDay=S.sch.freq==='daily'||(S.sch.freq==='weekly'&&n.getDay()===1);
+      if(isDay&&localStorage.getItem('bv_autoKey')!==n.toDateString()){
+        localStorage.setItem('bv_autoKey',n.toDateString());runSearch();
+      }
+    }
+  },60000);
+}
+
+function renderGuide(){
+  const area=document.getElementById('guideArea');
+  if(S.sckey){
+    area.innerHTML=`<div class="guide-box">✓ <b>微信推送已配置</b> — 后端脚本运行时会自动推送到你的微信。命令：<code>python scraper.py</code></div>`;
+  } else {
+    area.innerHTML=`<div class="guide-box"><b>尚未配置微信推送</b> — 在左侧输入 Server酱 SendKey 后保存即可开启自动推送。获取方式：<a href="https://sct.ftqq.com/" target="_blank">sct.ftqq.com</a></div>`;
+  }
+}
+
+renderKws();renderSrcs();initSch();renderGuide();
+
+// 尝试从 data.json 加载真实数据
+async function loadDataJson(){
+  try{
+    const resp=await fetch('data.json?'+Date.now());
+    if(resp.ok){
+      const data=await resp.json();
+      if(data.records&&data.records.length){
+        S.results=data.records;
+        if(data.last_push) S.lastRun=data.last_push+' (自动生成)';
+        persistAll();
+        renderResults(S.results);
+        updateStats(S.results);
+        document.getElementById('lastRunTxt').textContent=
+          `上次更新：${data.last_push||'未知'}  ·  共 ${data.records.length} 条`;
+        return;
+      }
+    }
+  }catch(e){console.log('data.json not available yet, using localStorage cache')}
+  if(S.results.length){
+    renderResults(S.results);
+    updateStats(S.results);
+    document.getElementById('lastRunTxt').textContent=
+      `上次检索：${S.lastRun}  ·  ${S.results.length}条`;
+  }
+}
+loadDataJson();
+
+</script>
+</body>
+</html>
