@@ -1,0 +1,12 @@
+{
+  "server_chan_key": "SCT359976TFjKy5X6tCoum9lPv1sI7S5V7",
+  "keywords": ["咨询评估机构"],
+  "days_range": 5,
+  "push_time": "18:00",
+  "enabled_sources": [
+    "ccgp", "bidcenter", "chinabidding", "ggzy",
+    "gd", "zj", "js", "sh", "bj", "sc",
+    "hn", "hb", "fj", "sd", "he", "gx",
+    "yn", "sx", "ln", "cq", "ah", "xj"
+  ]
+}
